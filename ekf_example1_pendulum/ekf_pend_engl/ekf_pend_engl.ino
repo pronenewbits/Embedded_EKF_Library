@@ -93,13 +93,9 @@ void setup() {
     EKF_IMU.vReset(X_est_init, P_INIT, Q_INIT, R_INIT);
 }
 
-static int a = 0;
 
 void loop() {
     if (timerEKF > SS_DT_MILIS) {
-        a++;
-        if (a > 1000) while(1);
-        
         /* ================== Read the sensor data / simulate the system here ================== */
         /*  The update function in discrete time:
          *      x1(k+1) = x1(k) + x2(k)*dt
