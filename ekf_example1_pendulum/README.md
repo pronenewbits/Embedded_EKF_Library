@@ -19,7 +19,10 @@ Then we implement the state space nonlinear update & measurement function in `ek
 
     bool Main_bUpdateNonlinearX(Matrix &X_Next, Matrix &X, Matrix &U)
     {
-        /*  The update function in discrete time:
+        /* Insert the nonlinear update transformation here
+        *          x(k+1) = f[x(k), u(k)]
+        *
+        *  The update function in discrete time:
         *      x1(k+1) = x1(k) + x2(k)*dt
         *      x2(k+1) = x2(k) - g/l*sin(x1(k))*dt - alpha*x2*dt
         */
@@ -29,7 +32,10 @@ Then we implement the state space nonlinear update & measurement function in `ek
 
     bool Main_bUpdateNonlinearY(Matrix &Y, Matrix &X, Matrix &U)
     {
-        /*  The output (in discrete time):
+        /* Insert the nonlinear measurement transformation here
+        *          y(k)   = h[x(k), u(k)]
+        *
+        *  The output (in discrete time):
         *      y1(k) =  sin(x1(k)) * l
         *      y2(k) = -cos(x1(k)) * l
         */
@@ -37,6 +43,49 @@ Then we implement the state space nonlinear update & measurement function in `ek
         return true;
     }
 
+    bool Main_bCalcJacobianF(Matrix &F, Matrix &X, Matrix &U)
+    {
+        /*  The update function in discrete time:
+        *      x1(k+1) = f1(x,u) = x1(k) + x2(k)*dt
+        *      x2(k+1) = f2(x,u) = x2(k) - g/l*sin(x1(k))*dt - alpha*x2*dt
+        * 
+        * 
+        *  The Jacobian matrix is 2x2 matrix (because we have 2 state variables):
+        *      F = [d(f1)/dx1    d(f1)/dx2]
+        *          [d(f2)/dx1    d(f2)/dx2]
+        * 
+        *      F = [d(x1(k) + x2(k)*dt)/dx1                                        d(x1(k) + x2(k)*dt)/dx2          ]
+        *          [d(x2(k) - g/l*sin(x1(k))*dt - alpha*x2*dt)/dx1    d(x2(k) - g/l*sin(x1(k))*dt - alpha*x2*dt)/dx2]
+        * 
+        *      F = [1                          dt      ]
+        *          [-g/l*cos(x2(k))*dt     1 - alpha*dt]
+        * 
+        */
+        ...
+        return true;
+    }
+
+    bool Main_bCalcJacobianH(Matrix &H, Matrix &X, Matrix &U)
+    {
+        /*  The output (in discrete time):
+        *      y1(k) = h1(x) =  sin(x1(k)) * l
+        *      y2(k) = h2(x) = -cos(x1(k)) * l
+        * 
+        * 
+        *  The Jacobian matrix is 2x2 matrix (because we have 2 outputs):
+        *      H = [d(h1)/dx1    d(h1)/dx2]
+        *          [d(h2)/dx1    d(h2)/dx2]
+        * 
+        *      H = [d(sin(x1(k)) * l)/dx1      d(sin(x1(k)) * l)/dx2 ]
+        *          [d(-cos(x1(k)) * l)/dx1     d(-cos(x1(k)) * l)/dx2]
+        * 
+        *      H = [cos(x1(k)) * l      0]
+        *          [sin(x1(k)) * l      0]
+        * 
+        */
+        ...
+        return true;
+    }
 
 
 
