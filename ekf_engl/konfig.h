@@ -58,7 +58,7 @@
 
 /* ASSERT is evaluated without calling function to lower the computation */
 void SPEW_THE_ERROR(char const * str);
-#define ASSERT(truth, str) { if (!truth) SPEW_THE_ERROR(str); }
+#define ASSERT(truth, str) { if (!(truth)) SPEW_THE_ERROR(str); }
 
 
 #endif // KONFIG_H
