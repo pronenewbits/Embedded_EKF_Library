@@ -12,6 +12,22 @@
  *       (optimasi lebih lanjut bisa dilakukan untuk mengurangi penggunaan memori).
  * 
  * Class Matrix Versioning:
+ *    v0.5 (2020-01-14), {PNb}:
+ *      - Buat file matrix.cpp (akhirnya!) untuk definisi fungsi di luar class.
+ *      - Tambahkan operator overloading untuk operasi negatif matrix (mis. a = -b).
+ *      - Tambahkan operator overloading untuk operasi penjumlahan & pengurangan 
+ *          dengan scalar.
+ *      - Ubah evaluasi MATRIX_PAKAI_BOUND_CHECKING menggunakan ASSERT.
+ *      - Tambahkan pengecekan index selalu positif di MATRIX_PAKAI_BOUND_CHECKING.
+ * 
+ *    v0.4 (2020-01-10), {PNb}:
+ *      - Tambahkan rounding to zero sebelum operasi sqrt(x) untuk menghindari
+ *          kasus x = 0-
+ *      - Fungsi QRDec mengembalikan Q' dan R (user perlu melakukan transpose
+ *          lagi setelah memanggil QRDec untuk mendapatkan Q).
+ *      - Menambahkan pengecekan hasil HouseholderTransformQR di dalam QRDec.
+ *      - Tambah warning jika MATRIX_PAKAI_BOUND_CHECKING dinonaktifkan.
+ * 
  *    v0.3_engl (2019-12-31), {PNb}:
  *      - Modifikasi dokumentasi kode buat orang asing.
  * 
@@ -80,6 +96,11 @@ public:
             return false;
         }
     }
+    
+    void vSetMatrixInvalid() {
+        this->i32baris = -1;
+        this->i32kolom = -1;
+    }
 
     bool bCekMatrixPersegi() {
         return (this->i32baris == this->i32kolom);
@@ -98,17 +119,10 @@ public:
          * (I know this is so dirty, but it makes the code so FABULOUS :D)
          */
         float_prec & operator[](int32_t _kolom) {
-            #if defined(MATRIX_PAKAI_BOUND_CHECKING)
-                if (_kolom >= this->_maxKolom) {
-                    #if (SYSTEM_IMPLEMENTATION == SYSTEM_IMPLEMENTATION_PC)
-                        cout << "Matrix index out-of-bounds (kolom: " << _kolom << ")"<< endl;
-                    #elif (SYSTEM_IMPLEMENTATION == SYSTEM_IMPLEMENTATION_EMBEDDED_ARDUINO)
-                        Serial.println("Matrix index out-of-bounds kolom");
-                    #else
-                        /* Silent function */
-                    #endif
-                    while(1);
-                }
+            #if (defined(MATRIX_PAKAI_BOUND_CHECKING))
+                ASSERT((_kolom >= 0) && (_kolom < this->_maxKolom), "Matrix index out-of-bounds (at column evaluation)");
+            #else
+                #warning("Matrix bounds checking is disabled... good luck >:3");
             #endif
             return _array[_kolom];
         }
@@ -117,17 +131,10 @@ public:
         int32_t _maxKolom;
     };
     Proxy operator[](int32_t _baris) {
-        #if defined(MATRIX_PAKAI_BOUND_CHECKING)
-            if (_baris >= this->i32baris) {
-                #if (SYSTEM_IMPLEMENTATION == SYSTEM_IMPLEMENTATION_PC)
-                    cout << "Matrix index out-of-bounds (baris: " << _baris << ")"<< endl;
-                #elif (SYSTEM_IMPLEMENTATION == SYSTEM_IMPLEMENTATION_EMBEDDED_ARDUINO)
-                    Serial.println("Matrix index out-of-bounds baris");
-                #else
-                    /* Silent function */
-                #endif
-                while(1);
-            }
+        #if (defined(MATRIX_PAKAI_BOUND_CHECKING))
+            ASSERT((_baris >= 0) && (_baris < this->i32baris), "Matrix index out-of-bounds (at row evaluation)");
+        #else
+            #warning("Matrix bounds checking is disabled... good luck >:3");
         #endif
         return Proxy(f32data[_baris], this->i32kolom);      /* Parsing data kolom untuk bound checking */
     }
@@ -158,12 +165,45 @@ public:
         return _outp;
     }
 
+//     Matrix operator + (float_prec _scalar) {
+//         Matrix _outp(this->i32baris, this->i32kolom);
+// 
+//         for (int32_t _i = 0; _i < this->i32baris; _i++) {
+//             for (int32_t _j = 0; _j < this->i32kolom; _j++) {
+//                 _outp[_i][_j] = (*this)[_i][_j] + _scalar;
+//             }
+//         }
+//         return _outp;
+//     }
+
     Matrix operator - (Matrix _pengurang) {
         Matrix _outp(this->i32baris, this->i32kolom);
 
         for (int32_t _i = 0; _i < this->i32baris; _i++) {
             for (int32_t _j = 0; _j < this->i32kolom; _j++) {
                 _outp[_i][_j] = (*this)[_i][_j] - _pengurang[_i][_j];
+            }
+        }
+        return _outp;
+    }
+
+//     Matrix operator - (float_prec _scalar) {
+//         Matrix _outp(this->i32baris, this->i32kolom);
+// 
+//         for (int32_t _i = 0; _i < this->i32baris; _i++) {
+//             for (int32_t _j = 0; _j < this->i32kolom; _j++) {
+//                 _outp[_i][_j] = (*this)[_i][_j] - _scalar;
+//             }
+//         }
+//         return _outp;
+//     }
+
+    Matrix operator - (void) {
+        Matrix _outp(this->i32baris, this->i32kolom);
+
+        for (int32_t _i = 0; _i < this->i32baris; _i++) {
+            for (int32_t _j = 0; _j < this->i32kolom; _j++) {
+                _outp[_i][_j] = -(*this)[_i][_j];
             }
         }
         return _outp;
@@ -183,27 +223,27 @@ public:
         return _outp;
     }
 
-    Matrix operator * (float_prec _scalar) {
-        Matrix _outp(this->i32baris, this->i32kolom);
+//     Matrix operator * (float_prec _scalar) {
+//         Matrix _outp(this->i32baris, this->i32kolom);
+// 
+//         for (int32_t _i = 0; _i < this->i32baris; _i++) {
+//             for (int32_t _j = 0; _j < this->i32kolom; _j++) {
+//                 _outp[_i][_j] = (*this)[_i][_j] * _scalar;
+//             }
+//         }
+//         return _outp;
+//     }
 
-        for (int32_t _i = 0; _i < this->i32baris; _i++) {
-            for (int32_t _j = 0; _j < this->i32kolom; _j++) {
-                _outp[_i][_j] = (*this)[_i][_j] * _scalar;
-            }
-        }
-        return _outp;
-    }
-
-    Matrix operator / (float_prec _scalar) {
-        Matrix _outp(this->i32baris, this->i32kolom);
-
-        for (int32_t _i = 0; _i < this->i32baris; _i++) {
-            for (int32_t _j = 0; _j < this->i32kolom; _j++) {
-                _outp[_i][_j] = (*this)[_i][_j] / _scalar;
-            }
-        }
-        return _outp;
-    }
+//     Matrix operator / (float_prec _scalar) {
+//         Matrix _outp(this->i32baris, this->i32kolom);
+// 
+//         for (int32_t _i = 0; _i < this->i32baris; _i++) {
+//             for (int32_t _j = 0; _j < this->i32kolom; _j++) {
+//                 _outp[_i][_j] = (*this)[_i][_j] / _scalar;
+//             }
+//         }
+//         return _outp;
+//     }
 
     void vRoundingElementToZero(const int32_t _i, const int32_t _j) {
         if (fabs((*this)[_i][_j]) < float_prec(float_prec_ZERO)) {
@@ -408,8 +448,13 @@ public:
                 _normM = _normM + ((*this)[_i][_j] * (*this)[_i][_j]);
             }
         }
+        
         if (_normM < float_prec(float_prec_ZERO)) {
             return false;
+        }
+        /* Rounding to zero untuk menghindari kasus sqrt(0-) */
+        if (fabs(_normM) < float_prec(float_prec_ZERO)) {
+            _normM = 0.0;
         }
         _normM = sqrt(_normM);
         for (int32_t _i = 0; _i < this->i32baris; _i++) {
@@ -553,6 +598,10 @@ public:
                         _outp.i32kolom = -1;
                         return _outp;
                     }
+                    /* Rounding to zero untuk menghindari kasus sqrt(0-) */
+                    if (fabs(_tempFloat) < float_prec(float_prec_ZERO)) {
+                        _tempFloat = 0.0;
+                    }
                     _outp[_i][_i] = sqrt(_tempFloat);
                 } else {
                     for (int32_t _k = 0; _k < _j; _k++) {
@@ -647,27 +696,42 @@ public:
      *      Melakukan operasi Dekomposisi QR pada matrix A dengan menggunakan fungsi
      *          MatrixOp_HouseholderTransform.
      *                      A = Q*R
+     * 
+     * PERHATIAN: Matrix yang dihasilkan dari perhitungan yang menggunakan Householder Transformation 
+     *            adalah Q' dan R. Dikarenakan QR decomposition seringkali digunakan untuk menyelesaikan
+     *            persamaan least-squares (membutuhkan Q'), Q' tidak ditranspose di dalam fungsi ini.
+     * 
+     * NOTE contoh penggunaan QRDec untuk permasalahan least-squares:
+     *                      Ax = b
+     *                   (QR)x = b
+     *                      Rx = Q'b    --> selanjutnya dilakukan back-subtitution untuk menyelesaikan x
      */
-    bool QRDec(Matrix &Q, Matrix &R)
+    bool QRDec(Matrix &Qt, Matrix &R)
     {
-        Matrix Qn(Q.i32baris, Q.i32kolom);
-        if ((this->i32baris < this->i32kolom) || (!Q.bCekMatrixPersegi()) || (Q.i32baris != this->i32baris) || (R.i32baris != this->i32baris) || (R.i32kolom != this->i32kolom)) {
-            Q.i32baris = -1;
-            Q.i32kolom = -1;
+        Matrix Qn(Qt.i32baris, Qt.i32kolom);
+        if ((this->i32baris < this->i32kolom) || (!Qt.bCekMatrixPersegi()) || (Qt.i32baris != this->i32baris) || (R.i32baris != this->i32baris) || (R.i32kolom != this->i32kolom)) {
+            Qt.i32baris = -1;
+            Qt.i32kolom = -1;
             R.i32baris = -1;
             R.i32kolom = -1;
             return false;
         }
         R = (*this);
-        Q.vSetIdentitas();
+        Qt.vSetIdentitas();
         for (int32_t _i = 0; (_i < (this->i32baris - 1)) && (_i < this->i32kolom-1); _i++) {
             Qn  = R.HouseholderTransformQR(_i, _i);
-            Q   = Qn * Q;
-            R   = Qn * R;
+            if (!Qn.bCekMatrixValid()) {
+                Qt.i32baris = -1;
+                Qt.i32kolom = -1;
+                R.i32baris = -1;
+                R.i32kolom = -1;
+                return false;
+            }
+            Qt = Qn * Qt;
+            R  = Qn * R;
         }
-        Q.RoundingMatrixToZero();
-        R.RoundingMatrixToZero();
-        Q = Q.Transpose();
+        Qt.RoundingMatrixToZero();
+        /* R.RoundingMatrixToZero(); */
         return true;
     }
 
@@ -705,6 +769,8 @@ public:
 
     /* Melakukan operasi back-subtitution pada matrix triangular A & matrix kolom B.
      *                      Ax = B
+     * 
+     * x = BackSubtitution(&A, &B);
      *
      *  Untuk menghemat komputansi, matrix A tidak dilakukan pengecekan triangular
      * (diasumsikan sudah upper-triangular).
@@ -770,6 +836,18 @@ public:
         }
         Serial.println("");
     }
+    void vCetakFull() {
+        char _bufSer[50];
+        for (int32_t _i = 0; _i < this->i32baris; _i++) {
+            Serial.print("[ ");
+            for (int32_t _j = 0; _j < this->i32kolom; _j++) {
+                snprintf(_bufSer, sizeof(_bufSer)-1, "%e ", (*this)[_i][_j]);
+                Serial.print(_bufSer);
+            }
+            Serial.println("]");
+        }
+        Serial.println("");
+    }
 #else
     #warning("Fungsi Matrix.vCetak() tidak berfungsi");
     
@@ -781,5 +859,14 @@ private:
     int32_t i32kolom;
     float_prec f32data[MATRIX_MAXIMUM_SIZE][MATRIX_MAXIMUM_SIZE] = {{0}};
 };
+
+
+Matrix operator + (const float_prec _scalar, Matrix _mat);
+Matrix operator - (const float_prec _scalar, Matrix _mat);
+Matrix operator * (const float_prec _scalar, Matrix _mat);
+Matrix operator + (Matrix _mat, const float_prec _scalar);
+Matrix operator - (Matrix _mat, const float_prec _scalar);
+Matrix operator * (Matrix _mat, const float_prec _scalar);
+Matrix operator / (Matrix _mat, const float_prec _scalar);
 
 #endif // MATRIX_H

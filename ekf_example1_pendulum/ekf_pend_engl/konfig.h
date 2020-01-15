@@ -17,7 +17,7 @@
 #define SS_X_LEN    (2)
 #define SS_Z_LEN    (2)
 #define SS_U_LEN    (0)
-#define SS_DT_MILIS (20)                            /* 10 ms */
+#define SS_DT_MILIS (20)                            /* 20 ms */
 #define SS_DT       float_prec(SS_DT_MILIS/1000.)   /* Sampling time */
 
 
@@ -56,6 +56,9 @@
 
 
 
-void ASSERT(bool truth, char const * str);
+/* ASSERT is evaluated without calling function to lower the computation */
+void SPEW_THE_ERROR(char const * str);
+#define ASSERT(truth, str) { if (!truth) SPEW_THE_ERROR(str); }
+
 
 #endif // KONFIG_H

@@ -13,13 +13,13 @@
 
 bool Main_bUpdateNonlinearX(Matrix &X_Next, Matrix &X, Matrix &U);
 bool Main_bUpdateNonlinearY(Matrix &Y, Matrix &X, Matrix &U);
-bool Main_bCalcJacobianA(Matrix &A, Matrix &X, Matrix &U);
-bool Main_bCalcJacobianC(Matrix &C, Matrix &X, Matrix &U);
+bool Main_bCalcJacobianF(Matrix &F, Matrix &X, Matrix &U);
+bool Main_bCalcJacobianH(Matrix &H, Matrix &X, Matrix &U);
 
 Matrix X(SS_X_LEN, 1);
 Matrix Y(SS_Z_LEN, 1);
 Matrix U(SS_U_LEN, 1);
-EKF EKF_IMU(X, P_INIT, Q_INIT, R_INIT, Main_bUpdateNonlinearX, Main_bUpdateNonlinearY, Main_bCalcJacobianA, Main_bCalcJacobianC);
+EKF EKF_IMU(X, P_INIT, Q_INIT, R_INIT, Main_bUpdateNonlinearX, Main_bUpdateNonlinearY, Main_bCalcJacobianF, Main_bCalcJacobianH);
 
 elapsedMillis timerLed, timerEKF;
 uint64_t u64compuTime;
@@ -89,14 +89,14 @@ bool Main_bUpdateNonlinearY(Matrix &Y, Matrix &X, Matrix &U)
     return true;
 }
 
-bool Main_bCalcJacobianA(Matrix &A, Matrix &X, Matrix &U)
+bool Main_bCalcJacobianF(Matrix &F, Matrix &X, Matrix &U)
 {
     /* Insert the linearized update transformation here (i.e. Jacobian matrix of f[x(k), u(k)]) */
     
     return true;
 }
 
-bool Main_bCalcJacobianC(Matrix &C, Matrix &X, Matrix &U)
+bool Main_bCalcJacobianH(Matrix &H, Matrix &X, Matrix &U)
 {
     /* Insert the linearized measurement transformation here (i.e. Jacobian matrix of h[x(k), u(k)]) */
     
@@ -106,3 +106,15 @@ bool Main_bCalcJacobianC(Matrix &C, Matrix &X, Matrix &U)
 
 
 
+
+void SPEW_THE_ERROR(char const * str)
+{
+    #if (SYSTEM_IMPLEMENTATION == SYSTEM_IMPLEMENTATION_PC)
+        cout << (str) << endl;
+    #elif (SYSTEM_IMPLEMENTATION == SYSTEM_IMPLEMENTATION_EMBEDDED_ARDUINO)
+        Serial.println(str);
+    #else
+        /* Silent function */
+    #endif
+    while(1);
+}

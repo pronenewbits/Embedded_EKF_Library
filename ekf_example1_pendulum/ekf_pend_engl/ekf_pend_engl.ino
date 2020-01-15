@@ -256,16 +256,14 @@ bool Main_bCalcJacobianH(Matrix &H, Matrix &X, Matrix &U)
 
 
 
-void ASSERT(bool truth, char const * str)
+void SPEW_THE_ERROR(char const * str)
 {
-    if (!(truth)) {
-        #if (SYSTEM_IMPLEMENTATION == SYSTEM_IMPLEMENTATION_PC)
-            cout << (str) << endl;
-        #elif (SYSTEM_IMPLEMENTATION == SYSTEM_IMPLEMENTATION_EMBEDDED_ARDUINO)
-            Serial.println(str);
-        #else
-            /* Silent function */
-        #endif
-        while(1);
-    }
+    #if (SYSTEM_IMPLEMENTATION == SYSTEM_IMPLEMENTATION_PC)
+        cout << (str) << endl;
+    #elif (SYSTEM_IMPLEMENTATION == SYSTEM_IMPLEMENTATION_EMBEDDED_ARDUINO)
+        Serial.println(str);
+    #else
+        /* Silent function */
+    #endif
+    while(1);
 }
