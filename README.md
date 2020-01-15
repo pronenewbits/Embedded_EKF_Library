@@ -31,7 +31,7 @@ For custom implementation, typically you only need to modify `konfig.h` and `*.i
 
 After that, you only need to initialize the EKF class, set the non-zero initialization matrix by calling `EKF::vReset(X_INIT, P_INIT, QInit, RInit)` function at initialization, and call `EKF::bUpdate(Y,U)` function every sampling time.
 
-To see how you can implement the library in non-trivial application, I implement 2 example:
+To see how you can implement the library in non-trivial application, I've implemented 2 example:
 1.  [ekf_example1_pendulum](ekf_example1_pendulum). This example simulate the damped pendulum. See the [README file](ekf_example1_pendulum/README.md) inside the folder to get more information. 
 2.  [ekf_example2_imu](ekf_example2_imu). This example process IMU (Inertial Measurement Unit) data using sensor MPU9250. See the [README file](ekf_example2_imu/README.md) inside the folder to get more information.
 
