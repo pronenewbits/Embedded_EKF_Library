@@ -63,10 +63,10 @@
 
 
 EKF::EKF(const Matrix& XInit, const Matrix& P, const Matrix& Q, const Matrix& R,
-         bool (*bNonlinearUpdateX)(Matrix& , const Matrix& , const Matrix& ),
-         bool (*bNonlinearUpdateY)(Matrix& , const Matrix& , const Matrix& ),
-         bool (*bCalcJacobianF)(Matrix& , const Matrix& , const Matrix& ),
-         bool (*bCalcJacobianH)(Matrix& , const Matrix& , const Matrix& ))
+         bool (*bNonlinearUpdateX)(Matrix&, const Matrix&, const Matrix&),
+         bool (*bNonlinearUpdateY)(Matrix&, const Matrix&, const Matrix&),
+         bool (*bCalcJacobianF)(Matrix&, const Matrix&, const Matrix&),
+         bool (*bCalcJacobianH)(Matrix&, const Matrix&, const Matrix&))
 {
     /* Initialization:
      *  x(k=0|k=0)  = Expected value of x at time-0 (i.e. x(k=0)), typically set to zero.

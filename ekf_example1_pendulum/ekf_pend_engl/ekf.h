@@ -14,10 +14,10 @@ class EKF
 {
 public:
     EKF(const Matrix& XInit, const Matrix& P, const Matrix& Q, const Matrix& R,
-        bool (*bNonlinearUpdateX)(Matrix& , const Matrix& , const Matrix& ),
-        bool (*bNonlinearUpdateY)(Matrix& , const Matrix& , const Matrix& ), 
-        bool (*bCalcJacobianF)(Matrix& , const Matrix& , const Matrix& ),
-        bool (*bCalcJacobianH)(Matrix& , const Matrix& , const Matrix& ));
+        bool (*bNonlinearUpdateX)(Matrix&, const Matrix&, const Matrix&),
+        bool (*bNonlinearUpdateY)(Matrix&, const Matrix&, const Matrix&), 
+        bool (*bCalcJacobianF)(Matrix&, const Matrix&, const Matrix&),
+        bool (*bCalcJacobianH)(Matrix&, const Matrix&, const Matrix&));
     void vReset(const Matrix& XInit, const Matrix& P, const Matrix& Q, const Matrix& R);
     bool bUpdate(const Matrix& Y, const Matrix& U);
     const Matrix GetX()   const { return X_Est; }

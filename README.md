@@ -9,7 +9,7 @@ This is a compact Extended Kalman Filter (EKF) library for Teensy4.0/Arduino sys
 # The Background
 The Extended Kalman Filter is a nonlinear version of [Kalman Filter](https://en.wikipedia.org/wiki/Kalman_filter) (KF) used to estimate a nonlinear system. In actuality, EKF is one of many nonlinear version of KF (because while a linear KF is an optimal filter for linear system; [as this paper conclude](https://ieeexplore.ieee.org/document/1098582), there is no general optimal filter for nonlinear system that can be calculated in [finite dimension](https://en.wikipedia.org/wiki/Nonlinear_filter#Kushner%E2%80%93Stratonovich_filtering)). In essence, EKF is (one of many) approximation to the optimal filter for nonlinear system. The strengh of EKF is its simplicity, its generality, and its low calculation overhead. That's why I made this library for any student who want to learn the structure of EKF, the computer code implementation of it, and how to use the filter for a nontrivial problem.
 
-This library is made with specific goal for educational purpose (I've made decision to sacrifice speed to get best code readability I could get) while still capable of tackling real-time control system implementation (the code is computed in around **50-80 us** for non trivia application! See *Some Benchmark* section below). I strongly suggest you to learn the linear kalman filter first before delve deeper into EKF.
+This library is made with specific goal for educational purpose (I've made decision to sacrifice speed to get best code readability I could get) while still capable of tackling real-time control system implementation (the code is computed in around **80-100 us** for non trivia application! See *[Some Benchmark](README.md#some-benchmark)* section below). I strongly suggest you to learn the linear kalman filter first before delve deeper into EKF.
 
 First we start with the nomenclature:
 ![EKF Definition](EKF_Definition.png "Click to maximize if the image rescaling make you feel dizzy")
@@ -49,11 +49,11 @@ The code is tested on compiler Qt Creator 4.8.2 and typical PC Platform.
 
 # Some Benchmark
 The computation time needed to compute one iteration of `EKF::bUpdate(Y,U)` function are:
-1. [ekf_example1_pendulum](ekf_example1_pendulum) (2 state, no input, 2 output): **20 us** to compute one iteration (single precision math) or **30 us** (double precision). The result, plotted using [Scilab](https://www.scilab.org/) (you can see at the beginning, the estimated value is converging to the truth despite wrong initial value):
+1. [ekf_example1_pendulum](ekf_example1_pendulum) (2 state, no input, 2 output): **14 us** to compute one iteration (single precision math) or **15 us** (double precision). The result, plotted using [Scilab](https://www.scilab.org/) (you can see at the beginning, the estimated value is converging to the truth despite wrong initial value):
 <p align="center"><img src="ekf_example1_pendulum/result.png" alt="Result for Pendulum simulation"></p>
 
 
-2. [ekf_example2_imu](ekf_example2_imu) (4 state, 3 input, 6 output): **53 us** to compute one iteration (single precision math) or **82 us** (double precision). The result, displayed by [Processing](https://processing.org/) script based on [FreeIMU project](http://www.varesano.net/files/FreeIMU-20121122_1126.zip):
+2. [ekf_example2_imu](ekf_example2_imu) (4 state, 3 input, 6 output): **86 us** to compute one iteration (single precision math) or **107 us** (double precision). The result, displayed by [Processing](https://processing.org/) script based on [FreeIMU project](http://www.varesano.net/files/FreeIMU-20121122_1126.zip):
 <p align="center"><img src="ekf_example2_imu/result.png" alt="Result for IMU visualization"></p>
 
 You can also see the video in the [ekf_example2_imu](ekf_example2_imu) folder.
