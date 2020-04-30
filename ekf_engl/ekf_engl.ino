@@ -1,3 +1,8 @@
+/*************************************************************************************************************
+ *  Template project for Extended Kalman Filter library
+ * 
+ * See https://github.com/pronenewbits for more!
+ ************************************************************************************************************/
 #include <Wire.h>
 #include <elapsedMillis.h>
 #include "konfig.h"
@@ -5,22 +10,43 @@
 #include "ekf.h"
 
 
-/* Just example */
-#define P_INIT      (1000.)
-#define Q_INIT      (0.001)
-#define R_INIT      (0.001)
-
-
-bool Main_bUpdateNonlinearX(Matrix &X_Next, Matrix &X, Matrix &U);
-bool Main_bUpdateNonlinearY(Matrix &Y, Matrix &X, Matrix &U);
-bool Main_bCalcJacobianF(Matrix &F, Matrix &X, Matrix &U);
-bool Main_bCalcJacobianH(Matrix &H, Matrix &X, Matrix &U);
-
+/* ============================================ EKF Variables/function declaration ============================================ */
+/* Just example; in konfig.h: 
+ *  SS_X_LEN = 2
+ *  SS_Z_LEN = 1
+ *  SS_U_LEN = 1 
+ */
+/* EKF initialization constant -------------------------------------------------------------------------------------- */
+#define P_INIT      (10.)
+#define Q_INIT      (1e-6)
+#define R_INIT      (0.0015)
+/* P(k=0) variable -------------------------------------------------------------------------------------------------- */
+float_prec EKF_PINIT_data[SS_X_LEN*SS_X_LEN] = {P_INIT, 0,
+                                                0,      P_INIT};
+Matrix EKF_PINIT(SS_X_LEN, SS_X_LEN, EKF_PINIT_data);
+/* Q constant ------------------------------------------------------------------------------------------------------- */
+float_prec EKF_QINIT_data[SS_X_LEN*SS_X_LEN] = {Q_INIT, 0,
+                                                0,      Q_INIT};
+Matrix EKF_QINIT(SS_X_LEN, SS_X_LEN, EKF_QINIT_data);
+/* R constant ------------------------------------------------------------------------------------------------------- */
+float_prec EKF_RINIT_data[SS_Z_LEN*SS_Z_LEN] = {R_INIT};
+Matrix EKF_RINIT(SS_Z_LEN, SS_Z_LEN, EKF_RINIT_data);
+/* Nonlinear & linearization function ------------------------------------------------------------------------------- */
+bool Main_bUpdateNonlinearX(Matrix& X_Next, const Matrix& X, const Matrix& U);
+bool Main_bUpdateNonlinearY(Matrix& Y, const Matrix& X, const Matrix& U);
+bool Main_bCalcJacobianF(Matrix& F, const Matrix& X, const Matrix& U);
+bool Main_bCalcJacobianH(Matrix& H, const Matrix& X, const Matrix& U);
+/* EKF variables ---------------------------------------------------------------------------------------------------- */
 Matrix X(SS_X_LEN, 1);
 Matrix Y(SS_Z_LEN, 1);
 Matrix U(SS_U_LEN, 1);
-EKF EKF_IMU(X, P_INIT, Q_INIT, R_INIT, Main_bUpdateNonlinearX, Main_bUpdateNonlinearY, Main_bCalcJacobianF, Main_bCalcJacobianH);
+/* EKF system declaration ------------------------------------------------------------------------------------------- */
+EKF EKF_IMU(X, EKF_PINIT, EKF_QINIT, EKF_RINIT, 
+            Main_bUpdateNonlinearX, Main_bUpdateNonlinearY, Main_bCalcJacobianF, Main_bCalcJacobianH);
 
+
+
+/* ========================================= Auxiliary variables/function declaration ========================================= */
 elapsedMillis timerLed, timerEKF;
 uint64_t u64compuTime;
 char bufferTxSer[100];
@@ -32,28 +58,30 @@ void setup() {
     Serial.begin(115200);
     while(!Serial) {}
     
-    X.vIsiNol();
-    EKF_IMU.vReset(X, P_INIT, Q_INIT, R_INIT);
+    X.vSetToZero();
+    EKF_IMU.vReset(X, EKF_PINIT, EKF_QINIT, EKF_RINIT);
 }
 
 
 void loop() {
-    if (timerEKF > SS_DT_MILIS) {
-        /* ================== Read the sensor data / simulate the system here ================== */
-        /* ------------------ Read the sensor data / simulate the system here ------------------ */
+    if (timerEKF >= SS_DT_MILIS) {
+        timerEKF = 0;
         
+        
+        /* ================== Read the sensor data / simulate the system here ================== */
+        /* ... */
+        /* ------------------ Read the sensor data / simulate the system here ------------------ */
         
         
         /* ============================= Update the Kalman Filter ============================== */
         u64compuTime = micros();
         if (!EKF_IMU.bUpdate(Y, U)) {
-            X.vIsiNol();
-            EKF_IMU.vReset(X, P_INIT, Q_INIT, R_INIT);
+            X.vSetToZero();
+            EKF_IMU.vReset(X, EKF_PINIT, EKF_QINIT, EKF_RINIT);
             Serial.println("Whoop ");
         }
         u64compuTime = (micros() - u64compuTime);
         /* ----------------------------- Update the Kalman Filter ------------------------------ */
-        
         
         
         /* =========================== Print to serial (for plotting) ========================== */
@@ -64,14 +92,11 @@ void loop() {
         #endif
         Serial.print('\n');
         /* --------------------------- Print to serial (for plotting) -------------------------- */
-        
-        
-        timerEKF = 0;
     }
 }
 
 
-bool Main_bUpdateNonlinearX(Matrix &X_Next, Matrix &X, Matrix &U)
+bool Main_bUpdateNonlinearX(Matrix& X_Next, const Matrix& X, const Matrix& U)
 {
     /* Insert the nonlinear update transformation here
      *          x(k+1) = f[x(k), u(k)]
@@ -80,7 +105,7 @@ bool Main_bUpdateNonlinearX(Matrix &X_Next, Matrix &X, Matrix &U)
     return true;
 }
 
-bool Main_bUpdateNonlinearY(Matrix &Y, Matrix &X, Matrix &U)
+bool Main_bUpdateNonlinearY(Matrix& Y, const Matrix& X, const Matrix& U)
 {
     /* Insert the nonlinear measurement transformation here
      *          y(k)   = h[x(k), u(k)]
@@ -89,14 +114,14 @@ bool Main_bUpdateNonlinearY(Matrix &Y, Matrix &X, Matrix &U)
     return true;
 }
 
-bool Main_bCalcJacobianF(Matrix &F, Matrix &X, Matrix &U)
+bool Main_bCalcJacobianF(Matrix& F, const Matrix& X, const Matrix& U)
 {
     /* Insert the linearized update transformation here (i.e. Jacobian matrix of f[x(k), u(k)]) */
     
     return true;
 }
 
-bool Main_bCalcJacobianH(Matrix &H, Matrix &X, Matrix &U)
+bool Main_bCalcJacobianH(Matrix& H, const Matrix& X, const Matrix& U)
 {
     /* Insert the linearized measurement transformation here (i.e. Jacobian matrix of h[x(k), u(k)]) */
     

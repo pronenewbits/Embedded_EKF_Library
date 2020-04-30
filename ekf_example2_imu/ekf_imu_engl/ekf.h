@@ -1,9 +1,9 @@
-/**************************************************************************************************
- * Class for Extended Kalman Filter.
+/*************************************************************************************************************
+ * Class for Discrete Extended Kalman Filter
  * 
  * 
  * See https://github.com/pronenewbits for more!
- *************************************************************************************************/
+ ************************************************************************************************************/
 #ifndef EKF_H
 #define EKF_H
 
@@ -13,21 +13,23 @@
 class EKF
 {
 public:
-    EKF(Matrix &XInit, const float_prec PInit, const float_prec QInit, const float_prec RInit,
-           bool (*bNonlinearUpdateX)(Matrix &, Matrix &, Matrix &), bool (*bNonlinearUpdateY)(Matrix &, Matrix &, Matrix &), 
-           bool (*bCalcJacobianA)(Matrix &, Matrix &, Matrix &), bool (*bCalcJacobianH)(Matrix &, Matrix &, Matrix &));
-    void vReset(Matrix &XInit, const float_prec PInit, const float_prec QInit, const float_prec RInit);
-    bool bUpdate(Matrix &Y, Matrix &U);
-    Matrix GetX()   { return X_Est; }
-    Matrix GetY()   { return Y_Est; }
-    Matrix GetP()   { return P; }
-    Matrix GetErr() { return Err; }
+    EKF(const Matrix& XInit, const Matrix& P, const Matrix& Q, const Matrix& R,
+        bool (*bNonlinearUpdateX)(Matrix& , const Matrix& , const Matrix& ),
+        bool (*bNonlinearUpdateY)(Matrix& , const Matrix& , const Matrix& ), 
+        bool (*bCalcJacobianF)(Matrix& , const Matrix& , const Matrix& ),
+        bool (*bCalcJacobianH)(Matrix& , const Matrix& , const Matrix& ));
+    void vReset(const Matrix& XInit, const Matrix& P, const Matrix& Q, const Matrix& R);
+    bool bUpdate(const Matrix& Y, const Matrix& U);
+    const Matrix GetX()   const { return X_Est; }
+    const Matrix GetY()   const { return Y_Est; }
+    const Matrix GetP()   const { return P; }
+    const Matrix GetErr() const { return Err; }
 
 protected:
-    bool (*bNonlinearUpdateX) (Matrix &X_dot, Matrix &X, Matrix &U);
-    bool (*bNonlinearUpdateY) (Matrix &Y_Est, Matrix &X, Matrix &U);
-    bool (*bCalcJacobianF) (Matrix &F, Matrix &X, Matrix &U);
-    bool (*bCalcJacobianH) (Matrix &H, Matrix &X, Matrix &U);
+    bool (*bNonlinearUpdateX) (Matrix& X_dot, const Matrix& X, const Matrix& U);
+    bool (*bNonlinearUpdateY) (Matrix& Y_Est, const Matrix& X, const Matrix& U);
+    bool (*bCalcJacobianF) (Matrix& F, const Matrix& X, const Matrix& U);
+    bool (*bCalcJacobianH) (Matrix& H, const Matrix& X, const Matrix& U);
 
 private:
     Matrix X_Est{SS_X_LEN, 1};

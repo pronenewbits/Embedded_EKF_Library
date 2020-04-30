@@ -1,5 +1,5 @@
-/***************************************************************************************************
- *  Class for Discrete Extended Kalman Filter 
+/*************************************************************************************************************
+ *  Class for Discrete Extended Kalman Filter
  *  The system to be estimated is defined as a discrete nonlinear dynamic dystem:
  *              x(k) = f[x(k-1), u(k-1)] + v(k)     ; x = Nx1,    u = Mx1
  *              y(k) = h[x(k)] + n(k)               ; y = Zx1
@@ -51,20 +51,22 @@
  * 
  * 
  *        *Additional Information:
- *              - Pada contoh di atas X~(k=0|k=0) = [0]. Untuk mempercepat konvergensi bisa digunakan
- *                  informasi plant-spesific. Misal pada implementasi Kalman Filter untuk sensor
- *                  IMU (Inertial measurement unit) dengan X = [quaternion], dengan asumsi IMU
- *                  awalnya menghadap ke atas tanpa rotasi, X~(k=0|k=0) = [1, 0, 0, 0]'
+ *              - Pada contoh di atas X~(k=0|k=0) = [0]. Untuk mempercepat konvergensi bisa
+ *                  digunakan informasi plant-spesific. Misal pada implementasi Kalman Filter
+ *                  untuk sensor IMU (Inertial measurement unit) dengan X = [quaternion], dengan
+ *                  asumsi IMU awalnya menghadap ke atas tanpa rotasi: X~(k=0|k=0) = [1, 0, 0, 0]'
  * 
  * 
  * See https://github.com/pronenewbits for more!
- **************************************************************************************************/
+ ************************************************************************************************************/
 #include "ekf.h"
 
 
-EKF::EKF(Matrix &XInit, const float_prec PInit, const float_prec QInit, const float_prec RInit,
-               bool (*bNonlinearUpdateX)(Matrix &, Matrix &, Matrix &), bool (*bNonlinearUpdateY)(Matrix &, Matrix &, Matrix &), 
-               bool (*bCalcJacobianF)(Matrix &, Matrix &, Matrix &), bool (*bCalcJacobianH)(Matrix &, Matrix &, Matrix &))
+EKF::EKF(const Matrix& XInit, const Matrix& P, const Matrix& Q, const Matrix& R,
+         bool (*bNonlinearUpdateX)(Matrix& , const Matrix& , const Matrix& ),
+         bool (*bNonlinearUpdateY)(Matrix& , const Matrix& , const Matrix& ),
+         bool (*bCalcJacobianF)(Matrix& , const Matrix& , const Matrix& ),
+         bool (*bCalcJacobianH)(Matrix& , const Matrix& , const Matrix& ))
 {
     /* Initialization:
      *  x(k=0|k=0)  = Expected value of x at time-0 (i.e. x(k=0)), typically set to zero.
@@ -74,25 +76,25 @@ EKF::EKF(Matrix &XInit, const float_prec PInit, const float_prec QInit, const fl
      *                 the noise as AWGN (and same value for every variable), this is set
      *                 to Q=diag(QInit,...,QInit) and R=diag(RInit,...,RInit).
      */
-    X_Est = XInit;
-    P.vIsiDiagonal(PInit);
-    Q.vIsiDiagonal(QInit);
-    R.vIsiDiagonal(RInit);
+    this->X_Est = XInit;
+    this->P = P;
+    this->Q = Q;
+    this->R = R;
     this->bNonlinearUpdateX = bNonlinearUpdateX;
     this->bNonlinearUpdateY = bNonlinearUpdateY;
     this->bCalcJacobianF = bCalcJacobianF;
     this->bCalcJacobianH = bCalcJacobianH;
 }
 
-void EKF::vReset(Matrix &XInit, const float_prec PInit, const float_prec QInit, const float_prec RInit)
+void EKF::vReset(const Matrix& XInit, const Matrix& P, const Matrix& Q, const Matrix& R)
 {
-    X_Est = XInit;
-    P.vIsiDiagonal(PInit);
-    Q.vIsiDiagonal(QInit);
-    R.vIsiDiagonal(RInit);
+    this->X_Est = XInit;
+    this->P = P;
+    this->Q = Q;
+    this->R = R;
 }
 
-bool EKF::bUpdate(Matrix &Y, Matrix &U)
+bool EKF::bUpdate(const Matrix& Y, const Matrix& U)
 {
     /* Run once every sampling time */
     
@@ -127,6 +129,9 @@ bool EKF::bUpdate(Matrix &Y, Matrix &U)
 
     /* K       = P(k|k-1)*H'*(S^-1)                                     ...{EKF_6} */
     Gain = P*(H.Transpose())*(S.Invers());
+    if (!Gain.bMatrixIsValid()) {
+        return false;
+    }
 
     /* x(k|k) = x(k|k-1) + K*[y(k) - h(x(k|k-1))]                       ...{EKF_7} */
     if (!bNonlinearUpdateY(Y_Est, X_Est, U)) {
@@ -135,9 +140,9 @@ bool EKF::bUpdate(Matrix &Y, Matrix &U)
     X_Est = X_Est + (Gain * (Y - Y_Est));
 
     /* P(k|k)  = (I - K*H)*P(k|k-1)                                     ...{EKF_8} */
-    Matrix Identitas = Matrix(SS_X_LEN, SS_X_LEN);
-    Identitas.vSetIdentitas();
-    P = (Identitas - (Gain*H))*P;
+    Matrix I = Matrix(SS_X_LEN, SS_X_LEN);
+    I.vSetIdentity();
+    P = (I - (Gain*H))*P;
     
     
     return true;

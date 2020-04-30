@@ -1,4 +1,4 @@
-/**************************************************************************************************
+/*************************************************************************************************************
  * 
  * In this example, we will simulate the damped pendulum:
  *  - The input u           : none
@@ -15,7 +15,8 @@
  *      y = -cos(theta) * l
  * 
  * *See https://en.wikipedia.org/wiki/Pendulum_(mathematics)#Simple_gravity_pendulum for undamped model, 
- * *See http://www.nld.ds.mpg.de/applets/pendulum/eqm1.htm or http://www.nld.ds.mpg.de/applets/pendulum/eqm2.htm for the damped model.
+ * *See http://www.nld.ds.mpg.de/applets/pendulum/eqm1.htm or
+ *      http://www.nld.ds.mpg.de/applets/pendulum/eqm2.htm for the damped model.
  * 
  * 
  * 
@@ -41,7 +42,7 @@
  * 
  * 
  * See https://github.com/pronenewbits for more!
- *************************************************************************************************/
+ ************************************************************************************************************/
 #include <Wire.h>
 #include <elapsedMillis.h>
 #include "konfig.h"
@@ -49,29 +50,52 @@
 #include "ekf.h"
 
 
+/* =============================================== The pendulum model constants =============================================== */
 #define pend_g      (9.81)          /* gravitation constant */
 #define pend_l      (5)             /* length of the pendulum rod, in meters */
 #define pend_alpha  (0.3)           /* damping factor */
 
 
-/* Just example */
-#define P_INIT      (100)
+
+/* ============================================ EKF variables/function declaration ============================================ */
+/* Just example; in konfig.h: 
+ *  SS_X_LEN = 2
+ *  SS_Z_LEN = 2
+ *  SS_U_LEN = 0 
+ */
+/* EKF initialization constant -------------------------------------------------------------------------------------- */
+#define P_INIT      (100.)
 #define Q_INIT      (0.01)
 #define R_INIT      (1.)
-
-
-
-bool Main_bUpdateNonlinearX(Matrix &X_Next, Matrix &X, Matrix &U);
-bool Main_bUpdateNonlinearY(Matrix &Y, Matrix &X, Matrix &U);
-bool Main_bCalcJacobianF(Matrix &F, Matrix &X, Matrix &U);
-bool Main_bCalcJacobianH(Matrix &H, Matrix &X, Matrix &U);
-
+/* P(k=0) variable -------------------------------------------------------------------------------------------------- */
+float_prec EKF_PINIT_data[SS_X_LEN*SS_X_LEN] = {P_INIT, 0,
+                                                0,      P_INIT};
+Matrix EKF_PINIT(SS_X_LEN, SS_X_LEN, EKF_PINIT_data);
+/* Q constant ------------------------------------------------------------------------------------------------------- */
+float_prec EKF_QINIT_data[SS_X_LEN*SS_X_LEN] = {Q_INIT, 0,
+                                                0,      Q_INIT};
+Matrix EKF_QINIT(SS_X_LEN, SS_X_LEN, EKF_QINIT_data);
+/* R constant ------------------------------------------------------------------------------------------------------- */
+float_prec EKF_RINIT_data[SS_Z_LEN*SS_Z_LEN] = {R_INIT, 0,
+                                                0,      R_INIT};
+Matrix EKF_RINIT(SS_Z_LEN, SS_Z_LEN, EKF_RINIT_data);
+/* Nonlinear & linearization function ------------------------------------------------------------------------------- */
+bool Main_bUpdateNonlinearX(Matrix& X_Next, const Matrix& X, const Matrix& U);
+bool Main_bUpdateNonlinearY(Matrix& Y, const Matrix& X, const Matrix& U);
+bool Main_bCalcJacobianF(Matrix& F, const Matrix& X, const Matrix& U);
+bool Main_bCalcJacobianH(Matrix& H, const Matrix& X, const Matrix& U);
+/* EKF variables ---------------------------------------------------------------------------------------------------- */
 Matrix X_true(SS_X_LEN, 1);
 Matrix X_est_init(SS_X_LEN, 1);
 Matrix Y(SS_Z_LEN, 1);
 Matrix U(SS_U_LEN, 1);
-EKF EKF_IMU(X_est_init, P_INIT, Q_INIT, R_INIT, Main_bUpdateNonlinearX, Main_bUpdateNonlinearY, Main_bCalcJacobianF, Main_bCalcJacobianH);
+/* EKF system declaration ------------------------------------------------------------------------------------------- */
+EKF EKF_IMU(X_est_init, EKF_PINIT, EKF_QINIT, EKF_RINIT,
+            Main_bUpdateNonlinearX, Main_bUpdateNonlinearY, Main_bCalcJacobianF, Main_bCalcJacobianH);
 
+
+
+/* ========================================= Auxiliary variables/function declaration ========================================= */
 elapsedMillis timerLed, timerEKF;
 uint64_t u64compuTime;
 char bufferTxSer[100];
@@ -83,6 +107,8 @@ void setup() {
     Serial.begin(115200);
     while(!Serial) {}
     
+    X_true.vSetToZero();
+    X_est_init.vSetToZero();
     
     /* For example, let's set the theta(k=0) = pi/2     (i.e. the pendulum rod is parallel with the horizontal plane) */
     X_true[0][0] = 3.14159265359/2.;
@@ -90,12 +116,15 @@ void setup() {
     /* Observe that we set the wrong initial x_estimated value!  (X_UKF(k=0) != X_TRUE(k=0)) */
     X_est_init[0][0] = -3.14159265359;
     
-    EKF_IMU.vReset(X_est_init, P_INIT, Q_INIT, R_INIT);
+    EKF_IMU.vReset(X_est_init, EKF_PINIT, EKF_QINIT, EKF_RINIT);
 }
 
 
 void loop() {
-    if (timerEKF > SS_DT_MILIS) {
+    if (timerEKF >= SS_DT_MILIS) {
+        timerEKF = 0;
+        
+        
         /* ================== Read the sensor data / simulate the system here ================== */
         /*  The update function in discrete time:
          *      x1(k+1) = x1(k) + x2(k)*dt
@@ -120,39 +149,38 @@ void loop() {
         /* ------------------ Read the sensor data / simulate the system here ------------------ */
         
         
-        
         /* ============================= Update the Kalman Filter ============================== */
         u64compuTime = micros();
         if (!EKF_IMU.bUpdate(Y, U)) {
-            X_est_init.vIsiNol();
-            EKF_IMU.vReset(X_est_init, P_INIT, Q_INIT, R_INIT);
+            X_est_init.vSetToZero();
+            EKF_IMU.vReset(X_est_init, EKF_PINIT, EKF_QINIT, EKF_RINIT);
             Serial.println("Whoop ");
         }
         u64compuTime = (micros() - u64compuTime);
         /* ----------------------------- Update the Kalman Filter ------------------------------ */
         
         
-        
         /* =========================== Print to serial (for plotting) ========================== */
         #if (0)
             /* Print: Computation time, x1 (without noise), x1 estimated */
-            snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "%.3f %.3f %.3f ", ((float)u64compuTime)/1000., X_true[0][0], EKF_IMU.GetX()[0][0]);
+            snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "%.3f %.3f %.3f ", ((float)u64compuTime)/1000.,
+                                                                            X_true[0][0], EKF_IMU.GetX()[0][0]);
             Serial.print(bufferTxSer);
         #else
             /* Print: Computation time, y1 (with noise), y1 (without noise), y1 estimated */
-            snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "%.3f %.3f %.3f %.3f ", ((float)u64compuTime)/1000., Y[0][0], sin(X_true[0][0])*pend_l, sin(EKF_IMU.GetX()[0][0])*pend_l);
+            snprintf(bufferTxSer, sizeof(bufferTxSer)-1, "%.3f %.3f %.3f %.3f ", ((float)u64compuTime)/1000.,
+                                                                                 Y[0][0],
+                                                                                 sin(X_true[0][0])*pend_l,
+                                                                                 sin(EKF_IMU.GetX()[0][0])*pend_l);
             Serial.print(bufferTxSer);
         #endif
         Serial.print('\n');
         /* --------------------------- Print to serial (for plotting) -------------------------- */
-        
-        
-        timerEKF = 0;
     }
 }
 
 
-bool Main_bUpdateNonlinearX(Matrix &X_Next, Matrix &X, Matrix &U)
+bool Main_bUpdateNonlinearX(Matrix& X_Next, const Matrix& X, const Matrix& U)
 {
     /* Insert the nonlinear update transformation here
      *          x(k+1) = f[x(k), u(k)]
@@ -177,7 +205,7 @@ bool Main_bUpdateNonlinearX(Matrix &X_Next, Matrix &X, Matrix &U)
     return true;
 }
 
-bool Main_bUpdateNonlinearY(Matrix &Y, Matrix &X, Matrix &U)
+bool Main_bUpdateNonlinearY(Matrix& Y, const Matrix& X, const Matrix& U)
 {
     /* Insert the nonlinear measurement transformation here
      *          y(k)   = h[x(k), u(k)]
@@ -194,7 +222,7 @@ bool Main_bUpdateNonlinearY(Matrix &Y, Matrix &X, Matrix &U)
     return true;
 }
 
-bool Main_bCalcJacobianF(Matrix &F, Matrix &X, Matrix &U)
+bool Main_bCalcJacobianF(Matrix& F, const Matrix& X, const Matrix& U)
 {
     /*  The update function in discrete time:
      *      x1(k+1) = f1(x,u) = x1(k) + x2(k)*dt
@@ -223,7 +251,7 @@ bool Main_bCalcJacobianF(Matrix &F, Matrix &X, Matrix &U)
     return true;
 }
 
-bool Main_bCalcJacobianH(Matrix &H, Matrix &X, Matrix &U)
+bool Main_bCalcJacobianH(Matrix& H, const Matrix& X, const Matrix& U)
 {
     /*  The output (in discrete time):
      *      y1(k) = h1(x) =  sin(x1(k)) * l
