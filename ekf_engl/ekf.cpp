@@ -140,9 +140,7 @@ bool EKF::bUpdate(const Matrix& Y, const Matrix& U)
     X_Est = X_Est + (Gain * (Y - Y_Est));
 
     /* P(k|k)  = (I - K*H)*P(k|k-1)                                     ...{EKF_8} */
-    Matrix I = Matrix(SS_X_LEN, SS_X_LEN);
-    I.vSetIdentity();
-    P = (I - (Gain*H))*P;
+    P = (MatIdentity(SS_X_LEN) - (Gain*H))*P;
     
     
     return true;
