@@ -1,1 +1,3 @@
-The code is working, just don't have any energy to make the documentation rn (︶｡︶✽)zzZZ
+This is the Sensor Fusion subsystem of [Attitude and Heading Reference System (AHRS) repo](https://github.com/pronenewbits/Arduino_AHRS_System).
+
+See [the subsystem section for explanation](https://github.com/pronenewbits/Arduino_AHRS_System#subsystem-1-the-sensor-fusion-algorithm).
